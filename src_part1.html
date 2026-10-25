@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ಊರಂದ್ರೆ ನಮ್ಮೂರು — 3D Lyrical Video (Three.js)</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@700;800;900&family=Baloo+Tamma+2:wght@700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#0d0b08;overflow:hidden;font-family:'Baloo Tamma 2',sans-serif;color:#fff}
+#wrap{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+#stage{position:relative;width:min(100vw, calc(100vh * 16 / 9));height:min(100vh, calc(100vw * 9 / 16));overflow:hidden;border-radius:10px;box-shadow:0 20px 80px rgba(0,0,0,.8);background:#F4C89A}
+canvas.webgl{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* ---------- lyric DOM layers ---------- */
+#lyric-layer{position:absolute;inset:0;pointer-events:none;z-index:30;perspective:1400px;transform-style:preserve-3d}
+.line-block{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);text-align:center;width:92%;will-change:transform,opacity;transform-style:preserve-3d}
+.badge{display:inline-block;margin-bottom:1.4vh;padding:.5vh 1.6vh;border-radius:99px;font-weight:800;font-size:1.72vh;letter-spacing:.12em;color:#FFF7CC;background:rgba(74,46,20,.72);border:1px solid rgba(255,247,204,.35);opacity:0;transform:translateY(-12px) scale(.8)}
+.badge.show{animation:badgeIn .7s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes badgeIn{to{opacity:1;transform:none}}
+.kn-line{font-family:'Noto Sans Kannada','Baloo Tamma 2',sans-serif;font-weight:900;line-height:1.34;color:var(--tc,#4A2E14);text-shadow:0 .3vh 0 rgba(255,255,255,.35),0 1.2vh 3.2vh rgba(74,46,20,.45);display:block;transform-style:preserve-3d}
+.kn-line .word{display:inline-block;white-space:pre;transform-origin:50% 90%;will-change:transform,opacity}
+.en-line{font-family:'Caveat',cursive;font-weight:700;color:rgba(255,255,255,.92);text-shadow:0 .2vh 1.2vh rgba(0,0,0,.55);display:block;margin-top:.6vh;letter-spacing:.02em;opacity:0;transform:translateY(1.5vh)}
+.en-line.show{animation:enIn .9s .35s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes enIn{to{opacity:1;transform:none}}
+/* karaoke progress mask */
+.kn-line .word .hl{position:absolute;left:0;top:0;width:100%;height:100%;color:var(--bc,#C84B31);clip-path:inset(0 100% 0 0);text-shadow:0 .3vh 0 rgba(255,255,255,.45);pointer-events:none}
+.kn-line .word{position:relative}
+/* line entrance variants */
+.v-rise .word{animation:vRise .62s cubic-bezier(.18,1.35,.32,1) both}
+@keyframes vRise{0%{opacity:0;transform:translateY(1.4em) rotateX(55deg) scale(.6)}70%{opacity:1}100%{opacity:1;transform:none}}
+.v-pop .word{animation:vPop .6s cubic-bezier(.2,1.7,.4,1) both}
+@keyframes vPop{0%{opacity:0;transform:scale(0) rotate(-14deg)}60%{transform:scale(1.18) rotate(4deg)}100%{opacity:1;transform:none}}
+.v-flip .word{animation:vFlip .66s cubic-bezier(.2,1.1,.3,1) both}
+@keyframes vFlip{0%{opacity:0;transform:rotateY(96deg) translateZ(-3em)}100%{opacity:1;transform:none}}
+.v-swirl .word{animation:vSwirl .72s cubic-bezier(.2,.9,.3,1) both}
+@keyframes vSwirl{0%{opacity:0;transform:translate(-.8em,.9em) rotate(24deg) scale(.2)}100%{opacity:1;transform:none}}
+.v-drop .word{animation:vDrop .6s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes vDrop{0%{opacity:0;transform:translateY(-1.6em) scaleY(1.5)}55%{transform:translateY(.18em) scaleY(.82)}75%{transform:translateY(-.06em) scaleY(1.08)}100%{opacity:1;transform:none}}
+.v-wave .word{animation:vWave .8s ease-out both}
+@keyframes vWave{0%{opacity:0;transform:translateX(-1.4em) skewX(-24deg)}100%{opacity:1;transform:none}}
+.line-block.out{animation:blkOut .55s ease-in forwards}
+@keyframes blkOut{to{opacity:0;transform:translate(-50%,-56%) scale(.86)}}
+/* section big title */
+#section-title{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:31;pointer-events:none;text-align:center;opacity:0}
+#section-title .st-kn{font-family:'Noto Sans Kannada',sans-serif;font-weight:900;font-size:11vh;color:#FFF3CD;text-shadow:0 0 6vh rgba(245,158,11,.9),0 1.4vh 4vh rgba(0,0,0,.5);letter-spacing:.04em}
+#section-title .st-en{font-family:'Caveat',cursive;font-size:4.4vh;color:#F59E0B}
+#section-title.play{animation:stIn 2.4s cubic-bezier(.2,1,.3,1) forwards}
+@keyframes stIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-4deg)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}30%{transform:translate(-50%,-50%) scale(1)}78%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.15)}}
+/* interlude music notes float */
+.fly-note{position:absolute;z-index:32;pointer-events:none;font-size:4.6vh;color:#7A4E2D;text-shadow:0 0 2vh rgba(255,243,205,.8);animation:noteUp linear forwards}
+@keyframes noteUp{0%{opacity:0;transform:translateY(2vh) rotate(-12deg) scale(.6)}12%{opacity:1}100%{opacity:0;transform:translateY(-34vh) rotate(18deg) scale(1.15)}}
+/* ---------- UI chrome ---------- */
+#vignette{position:absolute;inset:0;z-index:20;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(40,22,8,.28) 86%,rgba(24,12,4,.55) 100%)}
+#flash{position:absolute;inset:0;z-index:21;pointer-events:none;background:#FFF3CD;opacity:0;mix-blend-mode:overlay}
+#filmgrain{position:absolute;inset:0;z-index:22;pointer-events:none;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")}
+#letterbox-top,#letterbox-bot{position:absolute;left:0;right:0;height:0;background:#0a0806;z-index:24;transition:height .9s cubic-bezier(.7,0,.3,1);pointer-events:none}
+#letterbox-top{top:0}#letterbox-bot{bottom:0}
+.cine #letterbox-top,.cine #letterbox-bot{height:6.5%}
+#controls{position:absolute;left:0;right:0;bottom:0;z-index:40;display:flex;align-items:center;gap:1.1vh;padding:1.1vh 1.6vh;background:linear-gradient(transparent,rgba(20,12,4,.78) 40%);opacity:0;transition:opacity .4s}
+#wrap:hover #controls,#controls.pin{opacity:1}
+button{font-family:'Baloo Tamma 2';cursor:pointer;border:none;border-radius:8px;background:#C84B31;color:#fff;font-weight:800;padding:.7vh 1.4vh;font-size:1.7vh;transition:transform .15s,background .2s}
+button:hover{transform:scale(1.07);background:#E0603F}
+#play-btn{font-size:2.1vh;width:4.6vh;height:4.6vh;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0}
+#seek{-webkit-appearance:none;appearance:none;flex:1;height:.8vh;border-radius:99px;background:rgba(255,255,255,.25);outline:none}
+#seek::-webkit-slider-thumb{-webkit-appearance:none;width:1.9vh;height:1.9vh;border-radius:50%;background:#F59E0B;border:.3vh solid #fff;box-shadow:0 0 1.4vh rgba(245,158,11,.8);cursor:pointer}
+#time-text{font-family:monospace;font-size:1.6vh;color:#F59E0B;font-weight:700;min-width:11ch;text-align:center}
+#vol{width:8vh;height:.8vh;-webkit-appearance:none;appearance:none;border-radius:99px;background:rgba(255,255,255,.25)}
+#vol::-webkit-slider-thumb{-webkit-appearance:none;width:1.6vh;height:1.6vh;border-radius:50%;background:#fff}
+#eq-mini{display:flex;align-items:flex-end;gap:.35vh;height:3.4vh}
+#eq-mini i{width:.8vh;background:linear-gradient(#F59E0B,#C84B31);border-radius:2px;height:10%;transition:height .08s}
+#hint{position:absolute;top:1.4vh;right:1.8vh;z-index:41;font-size:1.5vh;color:rgba(255,255,255,.85);background:rgba(40,22,8,.55);padding:.6vh 1.2vh;border-radius:8px;backdrop-filter:blur(4px);transition:opacity 1s}
+/* ---------- start screen ---------- */
+#start{position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2vh;background:radial-gradient(ellipse at 50% 35%,rgba(244,200,154,.55),rgba(24,14,6,.92) 75%),url('assets/sky_golden.png') center/cover;backdrop-filter:blur(3px)}
+#start h1{font-family:'Noto Sans Kannada',sans-serif;font-weight:900;font-size:8.6vh;color:#FFF3CD;text-shadow:0 0 7vh rgba(245,158,11,.75),0 1.6vh 4vh rgba(0,0,0,.6);animation:titleFloat 3.4s ease-in-out infinite alternate}
+@keyframes titleFloat{from{transform:translateY(-.8vh) rotate(-.6deg)}to{transform:translateY(.8vh) rotate(.6deg)}}
+#start h2{font-family:'Caveat',cursive;font-size:3.6vh;color:#F59E0B;margin-top:-1.4vh}
+#start .tag{font-size:1.9vh;color:#FFF7CC;background:rgba(200,75,49,.85);padding:.8vh 2.4vh;border-radius:99px;letter-spacing:.2em;font-weight:800}
+#big-play{width:12vh;height:12vh;border-radius:50%;font-size:5.4vh;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1vh rgba(255,243,205,.35),0 2vh 8vh rgba(0,0,0,.6);animation:pulseGlow 1.8s ease-in-out infinite}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 0 .6vh rgba(255,243,205,.3),0 2vh 8vh rgba(0,0,0,.6)}50%{box-shadow:0 0 0 1.6vh rgba(245,158,11,.25),0 2vh 10vh rgba(0,0,0,.6)}}
+#start .sub{font-size:1.7vh;color:rgba(255,247,204,.75)}
+.hidden{display:none!important}
+audio{display:none}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage">
+    <canvas id="c" class="webgl"></canvas>
+    <div id="lyric-layer"></div>
+    <div id="section-title"><div class="st-kn"></div><div class="st-en"></div></div>
+    <div id="vignette"></div><div id="flash"></div><div id="filmgrain"></div>
+    <div id="letterbox-top"></div><div id="letterbox-bot"></div>
+    <div id="hint">Space = Play/Pause · ← → = Seek · L = Lyrics only · C = Cinematic bars</div>
+    <div id="controls">
+      <button id="play-btn">▶</button>
+      <input id="seek" type="range" min="0" max="161.31" step="0.01" value="0">
+      <span id="time-text">0:00 / 2:41</span>
+      <input id="vol" type="range" min="0" max="1" step="0.01" value="0.9">
+      <div id="eq-mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <button id="btn-cine" title="Cinematic letterbox">C</button>
+      <button id="btn-reset" title="Restart">⟲</button>
+    </div>
+    <div id="start">
+      <div class="tag">ಕನ್ನಡ ಲಿರಿಕಲ್ ವೀಡಿಯೊ</div>
+      <h1>ಊರಂದ್ರೆ ನಮ್ಮೂರು</h1>
+      <h2>Oorandre Nammooru — A Village Anthem</h2>
+      <button id="big-play">▶</button>
+      <div class="sub">Real-time Three.js · beat-reactive village world · audio-synced Kannada lyrics</div>
+    </div>
+  </div>
+</div>
+<audio id="media" src="oorandre_nammooru_audio.mp3" preload="auto"></audio>
+<script src="three.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
