@@ -677,11 +677,102 @@ let CUES=[],FPSV=50;
 let BAND={bass:null,mid:null,high:null,air:null,rms:null};
 function sampleBand(arr,t){const i=clamp(Math.floor(t*FPSV),0,arr.length-1);return arr[i]}
 
-// ---------- lyric engine ----------
-const VARIANTS=['v-rise','v-pop','v-flip','v-swirl','v-drop','v-wave'];
+// ============================================================================
+// MEANING-DRIVEN CHOREOGRAPHY — every line gets its own animation idea.
+// fx keys: entrance variant · per-word styling · decor emojis · particle FX ·
+// scene props · camera move · panel color · exit style
+// ============================================================================
+const FX={
+ // ---- ಪಲ್ಲವಿ (Pallavi) : pride of the village ----
+ 'oorandre'    :{v:'v-bloom',   sc:[1.35,1,.8],  tilt:[0,-6,4],  glow:'#FFD964', decor:['🏡'],              parts:'petals',   scene:{gate:1},           cam:'pushIn',     panel:'temple'},
+ 'tammoru'     :{v:'v-hug',     sc:[1,.92,1.12], tilt:[0,3,-3],  glow:'#F7A1C1', decor:['🤝','💞'],          parts:'hearts',   scene:{kidsHuddle:1},     cam:'arcRight',   panel:'warm'},
+ 'daivakke'    :{v:'v-namaste', sc:[1.05,1,1],   tilt:[0,0,0],   glow:'#FFE9B8', decor:['🙏'],              parts:'glowmotes',scene:{templeGlow:1,diyas:1},cam:'tiltUp',     panel:'sacred'},
+ 'sneha'       :{v:'v-link',    sc:[1,1,1],      tilt:[0,-4,4],  glow:'#FF9FB2', decor:['❤️‍🩹','🌿'],         parts:'hearts',   scene:{treesSway:1},      cam:'arcLeft',    panel:'warm'},
+ 'santhosha'   :{v:'v-share',   sc:[1.1,1,.95],  tilt:[0,5,-5],  glow:'#FFC94A', decor:['😊','🎁'],          parts:'confetti', scene:{kidsDance:1},      cam:'pullBack',   panel:'festive'},
+ 'munde'       :{v:'v-march',   sc:[.95,1,1.15], tilt:[0,0,-2],  glow:'#8FD3FF', decor:['🚶‍♂️','➡️'],        parts:'dust',     scene:{pathFlow:1,arrow:1},cam:'trackSide',  panel:'sky'},
+ 'chintheya'   :{v:'v-juggle',  sc:[1.15,.85,1.05],tilt:[0,8,-8],glow:'#C9A7FF', decor:['🤹','😄'],          parts:'sparks',   scene:{kidsPlay:1},       cam:'bounce',     panel:'playful'},
+ 'ninthalle'   :{v:'v-stomp',   sc:[1.2,1.2,.8], tilt:[0,0,0],   glow:'#FF8A5C', decor:['🛑','✋'],          parts:'shock',    scene:{freeze:1},         cam:'whipStop',   panel:'bold'},
+ 'sampatthu'   :{v:'v-treasure',sc:[1.25,1.1,1], tilt:[0,-3,3],  glow:'#FFD24A', decor:['💰','📜','🗝️'],     parts:'goldrain', scene:{treasure:1,kalasha:1},cam:'craneUp',   panel:'golden'},
+ 'innenta'     :{v:'v-shrug',   sc:[1,1,1],      tilt:[0,4,-4],  glow:'#BFF2C9', decor:['🤷','✨'],          parts:'bubbles',  scene:{fireflies:1},      cam:'driftFloat', panel:'green'},
+
+ // ---- ಏ ಗಡಿಬಿಡಿ Hook : rush of life's cart ----
+ 'gadibidi'    :{v:'v-rush',    sc:[1,1,1],      tilt:[0,-7,7],  glow:'#FF7A3C', decor:['💨','🛞'],          parts:'speed',    scene:{cart:1,speedlines:1},cam:'chaseCart',  panel:'rush',exit:'x-fast'},
+ 'horate'      :{v:'v-wheel',   sc:[1.1,1,.9],   tilt:[0,0,0],   glow:'#FFB347', decor:['🛺','🌾'],          parts:'dust',     scene:{cart:1,wheels:1},  cam:'chaseCart',  panel:'rush'},
+ 'idiidi'      :{v:'v-chase',   sc:[.9,1.1,1],   tilt:[0,6,-6],  glow:'#FF9E5E', decor:['🏃','💨'],          parts:'speed',    scene:{runner:1,cart:1},  cam:'panFast',    panel:'rush',exit:'x-fast'},
+ 'odo'         :{v:'v-sprint',  sc:[1.3,1.3,1],  tilt:[0,0,-4],  glow:'#FF5E3A', decor:['⚡'],               parts:'speed',    scene:{runner:1,dash:1},  cam:'whoosh',     panel:'rush',exit:'x-fast'},
+ 'kidi'        :{v:'v-spark',   sc:[.7,1.4,.8],  tilt:[0,0,0],   glow:'#FFF3B0', decor:['✨','🔥'],          parts:'embers',   scene:{sparkFly:1},       cam:'zoomPop',    panel:'fire'},
+ 'deepa'       :{v:'v-ignite',  sc:[1.4,1.4,1],  tilt:[0,0,0],   glow:'#FFC24B', decor:['🪔'],               parts:'embers',   scene:{diyasAll:1,lanterns:1},cam:'glowRise',panel:'fire'},
+ 'belaku'      :{v:'v-rays',    sc:[1.15,1,1.15],tilt:[0,0,0],   glow:'#FFEFAF', decor:['🌅','☀️'],          parts:'rayspark', scene:{sunburst:1,rays:1},cam:'tiltUpSun',  panel:'light'},
+ 'adethade'    :{v:'v-smash',   sc:[1.2,.9,1.1], tilt:[0,-9,9],  glow:'#FF8C66', decor:['🚧','💥'],          parts:'debris',   scene:{obstacles:1,smash:1},cam:'shakeHit',  panel:'bold',exit:'x-shatter'},
+ 'baalo'       :{v:'v-bloom',   sc:[1.2,1,1],    tilt:[0,4,-4],  glow:'#9BE29B', decor:['🌱','💚'],          parts:'petals',   scene:{sprout:1,grow:1},  cam:'riseBloom',  panel:'green'},
+ 'khushi'      :{v:'v-burst',   sc:[1.3,1.1,1],  tilt:[0,7,-7],  glow:'#FFD964', decor:['🎉','😄'],          parts:'confetti', scene:{balloons:1},       cam:'celebrate',  panel:'festive'},
+ 'dishe'       :{v:'v-compass', sc:[1,.9,1.2],   tilt:[0,0,-6],  glow:'#7FD4FF', decor:['🧭','🛣️'],         parts:'stardust', scene:{signposts:1},      cam:'orbitLook',  panel:'sky'},
+ 'geluvina'    :{v:'v-victory', sc:[1.35,1.25,1],tilt:[0,0,0],   glow:'#FFD24A', decor:['🏆','🎖️'],         parts:'goldrain', scene:{trophy:1,flags:1}, cam:'heroLow',    panel:'golden'},
+ 'baaro'       :{v:'v-come',    sc:[1.15,1,1],   tilt:[0,-5,5],  glow:'#FFB84C', decor:['🙌','🫵'],          parts:'sparks',   scene:{armsWave:1},       cam:'welcomePush',panel:'warm'},
+
+ // ---- ಚರಣ (Charana) : the way of living ----
+ 'aalaagi'     :{v:'v-labor',   sc:[1,.95,1.05], tilt:[0,3,-3],  glow:'#D9A066', decor:['🌾','💦'],          parts:'dust',     scene:{farmWork:1},       cam:'groundLevel',panel:'earth'},
+ 'arasaagi'    :{v:'v-throne',  sc:[1.2,1.05,1], tilt:[0,0,0],   glow:'#FFD24A', decor:['👑','🍛'],          parts:'goldrain', scene:{thali:1},          cam:'craneUp',    panel:'golden'},
+ 'bandiddu'    :{v:'v-flow',    sc:[1,1,1.1],    tilt:[0,-4,4],  glow:'#9AD9FF', decor:['🌊','➡️'],          parts:'bubbles',  scene:{riverFlow:1},      cam:'trackSide',  panel:'sky'},
+ 'biddora'     :{v:'v-reach',   sc:[.95,1.1,1],  tilt:[0,0,-3],  glow:'#FFC2A0', decor:['🤲'],               parts:'glowmotes',scene:{helpHands:1},      cam:'leanIn',     panel:'warm'},
+ 'melakke'     :{v:'v-lift',    sc:[1,1.35,1],   tilt:[0,0,0],   glow:'#BFE9FF', decor:['⬆️','🕊️'],         parts:'updraft',  scene:{liftUp:1,birds:1}, cam:'riseLift',   panel:'sky'},
+ 'nambike'     :{v:'v-solid',   sc:[1.15,1.15,1],tilt:[0,0,0],   glow:'#FFE9B8', decor:['🛡️','🤍'],         parts:'shieldglow',scene:{kalasha:1,guard:1},cam:'steadyZoom',panel:'sacred'},
+ 'dinakondu1'  :{v:'v-sun',     sc:[1.1,1,1],    tilt:[0,5,-5],  glow:'#FFD964', decor:['☀️','😊'],          parts:'rayspark', scene:{sunDaily:1},       cam:'arcRight',   panel:'light'},
+ 'dinakondu2'  :{v:'v-message', sc:[1,.95,1.15], tilt:[0,-5,5],  glow:'#8FD3FF', decor:['📯','💌'],          parts:'paperplanes',scene:{birdsMsg:1},     cam:'followPlane',panel:'sky'},
+ 'arithaaga'   :{v:'v-idea',    sc:[1.25,1.25,1],tilt:[0,0,0],   glow:'#FFF3B0', decor:['💡'],               parts:'embers',   scene:{bulbGlow:1},       cam:'zoomPop',    panel:'light'},
+ 'jokaali'     :{v:'v-seesaw',  sc:[1,1,1],      tilt:[0,9,-9],  glow:'#FFB0D0', decor:['🛷','😆'],          parts:'confetti', scene:{seesaw:1,kidsPlay:1},cam:'teeter',    panel:'playful'},
+ 'jeekona'     :{v:'v-together',sc:[1.05,1,1.05],tilt:[0,4,-4],  glow:'#FFC2A0', decor:['🫂','👫'],          parts:'hearts',   scene:{friendsWalk:1},    cam:'arcLeft',    panel:'warm'},
+ 'janjaata'    :{v:'v-play',    sc:[1.1,1.1,1],  tilt:[0,6,-6],  glow:'#FFD9E8', decor:['🪁','🥁'],          parts:'confetti', scene:{kite:1,drums:1},   cam:'bounce',     panel:'playful'},
+
+ // ---- interlude & outro ----
+ 'interlude'   :{v:'v-folk',    sc:[1,1,1],      tilt:[0,0,0],   glow:'#FFD964', decor:['🎶','♪','♫','🥁'],  parts:'notes',    scene:{dancers:1,notes3d:1},cam:'orbitSlow',  panel:'festive'},
+ 'outro'       :{v:'v-glowin',  sc:[1.1,1,1],    tilt:[0,0,0],   glow:'#FFC24B', decor:['🪔','🌙','✦'],      parts:'fireflyup',scene:{night:1,diyasAll:1,lanterns:1},cam:'outroPull',panel:'night'},
+};
+
+// map each cue (by index) to a sequence of per-LINE fx keys (meaning-based)
+const CUE_LINES=[
+ ['oorandre','oorandre','tammoru'],                        // 0
+ ['tammoru','santhosha'],                                  // 1  family living together -> joyful home
+ ['daivakke','sneha'],                                     // 2
+ ['santhosha','munde'],                                    // 3
+ ['chintheya'],                                            // 4
+ ['ninthalle'],                                            // 5
+ ['sampatthu','sampatthu','sampatthu'],                    // 6  three beats: oor/bhashe/sampatthu
+ ['innenta'],                                              // 7
+ ['gadibidi','horate'],                                    // 8
+ ['idiidi','odo'],                                         // 9
+ ['kidi','deepa','belaku'],                                // 10 spark->lamp->light (line2 has two ideas)
+ ['adethade','baalo'],                                     // 11
+ ['gadibidi','horate','idiidi','odo'],                     // 12
+ ['khushi','dishe','geluvina','baaro'],                    // 13
+ ['interlude'],                                            // 14
+ ['aalaagi','arasaagi','bandiddu'],                        // 15
+ ['biddora','melakke'],                                    // 16
+ ['nambike'],                                              // 17
+ ['gadibidi','horate'],                                    // 18
+ ['idiidi','odo'],                                         // 19
+ ['kidi','deepa','belaku','adethade','baalo'],             // 20 (5 text lines -> reuse last for extras)
+ ['dinakondu1','dinakondu2','arithaaga'],                  // 21
+ ['jokaali','jeekona','janjaata'],                         // 22
+ ['chintheya','ninthalle','sampatthu'],                    // 23 outro triplet
+];
+
+// ---------- scene prop state driven by per-line fx ----------
+const SC={goal:{},cur:{}};
+const SC_KEYS=['gate','kidsHuddle','templeGlow','diyas','diyasAll','treesSway','kidsDance','pathFlow','arrow','kidsPlay','freeze','treasure','kalasha','fireflies','cart','speedlines','runner','wheels','dash','sparkFly','lanterns','sunburst','rays','obstacles','smash','sprout','grow','balloons','signposts','trophy','flags','armsWave','farmWork','thali','riverFlow','helpHands','liftUp','birds','guard','steady','sunDaily','birdsMsg','bulbGlow','seesaw','friendsWalk','kite','drums','dancers','notes3d','night'];
+SC_KEYS.forEach(k=>{SC.goal[k]=0;SC.cur[k]=0});
+let CAM_MOVE='pushIn', CAM_MOVE_T=0, EXIT_STYLE='fade';
 let curBlock=null,curCueIdx=-1,lastCueIdx=-1;
 let wordEls=[],wordRanges=[]; // karaoke mapping
+let lineFxList=[],lineEls=[];
 let cueStartRender=0;
+function setSceneFromFx(fx){
+  SC_KEYS.forEach(k=>SC.goal[k]=0);
+  Object.assign(SC.goal,fx.scene||{});
+  if((fx.parts==='petals')||(fx.parts==='hearts'))SC.goal.treesSway=1;
+  CAM_MOVE=fx.cam||'pushIn';CAM_MOVE_T=elapsed;
+  EXIT_STYLE=fx.exit||'fade';
+}
 
 function fitFont(blk){
   requestAnimationFrame(()=>{
@@ -694,6 +785,41 @@ function fitFont(blk){
     en.forEach(e=>e.style.fontSize='3.1vh');
   });
 }
+// pick fx for a given line inside a cue (clamped / fallback by section)
+function fxForLine(cueIdx,li){
+  const seq=CUE_LINES[cueIdx]||[];
+  const key=seq[Math.min(li,seq.length-1)]||fallbackFx(cueIdx);
+  return FX[key]||FX['oorandre'];
+}
+function fallbackFx(cueIdx){
+  const c=CUES[cueIdx];const t=c?(c.t||''):'';
+  if(t.indexOf('ಗಡಿಬಿಡಿ')>=0)return 'gadibidi';
+  if(t.indexOf('ಚರಣ')>=0)return 'aalaagi';
+  if(t.indexOf('ಔಟ್ರೋ')>=0)return 'outro';
+  if(/♫/.test(c?c.kn:''))return 'interlude';
+  return 'oorandre';
+}
+// meaning-based emphasis: highlight the "hero" word of each line with pop-scale & glow
+function heroWordIndex(words,fxKey){
+  const join=words.join(' ');
+  const table={
+    oorandre:/ಊರಂದ್ರೆ|ನಮ್ಮೂರು/,tammoru:/ತಮ್ಮೋರು|ಒಂದಾಗಿ/,daivakke:/ದೈವಕ್ಕೆ|ಬಾಗೋರು/,
+    sneha:/ಸ್ನೇಹಕ್ಕೆ|ನಿಲ್ಲೋರು/,santhosha:/ಸಂತೋಷ|ಹಂಚಿಕೊಂಡು/,munde:/ಮುಂದೆ|ಸಾಗೋರು/,
+    chintheya:/ಗಮ್ಮತ್ತು|ಚಿಂತೆಯ/,ninthalle:/ನಿಂತಲ್ಲೆ|ಯಾವತ್ತು/,sampatthu:/ಸಂಪತ್ತು|ಭಾಷೆ/,
+    innenta:/ಬೇಕು|ಇನ್ನೆಂತ/,gadibidi:/ಗಡಿಬಿಡಿ/,horate:/ಹೊರಟಿದೆ|ಗಾಡಿ/,idiidi:/ಇಡಿ/,
+    odo:/ಓಡೊ/,kidi:/ಕಿಡಿ/,deepa:/ದೀಪ/,belaku:/ಬೆಳಕು/,adethade:/ಅಡೆತಡೆಗಳ|ದೂರ/,
+    baalo:/ಬಾಳೊ/,khushi:/ಖುಷಿ/,dishe:/ದಿಶೆಗಳ|ಹುಡುಕಿ/,geluvina:/ಗೆಲುವಿನ|ನಶೆ/,baaro:/ಬಾರೊ/,
+    aalaagi:/ಆಳಾಗಿ|ದುಡಿಯೋದು/,arasaagi:/ಅರಸಾಗಿ|ತಿನ್ನೋದು/,bandiddu:/ಬಂದಿದ್ದು|ಸಾಗೋದು/,
+    biddora:/ಬಿದ್ದೋರ|ಕೈಚಾಚಿ/,melakke:/ಎತ್ತೋದು|ಮೇಲಕ್ಕೆ/,nambike:/ನಂಬಿಕೆ|ವಿಶ್ವಾಸ/,
+    dinakondu1:/ಸಂತೋಷ/,dinakondu2:/ಸಂದೇಶ/,arithaaga:/ಉದ್ದೇಶ|ಅರಿತಾಗ/,jokaali:/ಜೋಕಾಲಿ/,
+    jeekona:/ಜೊತೆಯಲ್ಲಿ|ಜೀಕೋಣ/,janjaata:/ಜಂಜಾಟ|ಮಾಮೂಲಿ/,interlude:/♫/,outro:/ಸಂಪತ್ತು/
+  };
+  const re=table[fxKey];
+  if(!re)return -1;
+  for(let i=0;i<words.length;i++){if(re.test(words[i]))return i}
+  return -1;
+}
+
 function buildBlock(cue,idx){
   const theme=themeFor(cue.t);
   const blk=document.createElement('div');blk.className='line-block';
@@ -705,22 +831,46 @@ function buildBlock(cue,idx){
   const isInterlude=/♫/.test(cue.kn);
   const totalChars=isInterlude?1:[...cue.kn.replace(/\n/g,'')].length;
   wordRanges=[];wordEls=[];let charAcc=0;
-  const perLine=knLines.map(L=>[...L.replace(/\s/g,'')].length||1);
+  lineFxList=[];lineEls=[];
   knLines.forEach((L,li)=>{
-    const ln=document.createElement('span');ln.className='kn-line '+VARIANTS[(idx*2+li)%VARIANTS.length];
+    const fx=fxForLine(idx,li);
+    lineFxList.push(fx);
+    const ln=document.createElement('span');ln.className='kn-line '+fx.v;
+    ln.style.setProperty('--glow',fx.glow);
     const words=L.split(/(\s+)/);
-    let wc=0;words.forEach(w=>{
+    const nonEmpty=words.filter(w=>w.trim());
+    const heroI=heroWordIndex(nonEmpty,Object.keys(FX).find(k=>FX[k]===fx)||'oorandre');
+    let neCount=0;
+    words.forEach(w=>{
       if(!w.trim()){ln.appendChild(document.createTextNode(w));return}
       const wd=document.createElement('span');wd.className='word';
       wd.textContent=w;
       const hl=document.createElement('span');hl.className='hl';hl.textContent=w;wd.appendChild(hl);
+      // per-word scale from fx.sc (cycle through provided scales)
+      const scArr=fx.sc||[1,1,1];
+      const s=scArr[neCount%scArr.length];
+      wd.dataset.baseScale=s;wd.dataset.tilt=((fx.tilt&&fx.tilt[neCount%fx.tilt.length])||0);
+      if(neCount===heroI){wd.classList.add('hero');wd.dataset.baseScale=Math.max(s,(fx.sc?Math.max(...fx.sc):1)*1.18)}
       ln.appendChild(wd);
       const n=[...w.replace(/\s/g,'')].length;
       const fracStart=(charAcc)/totalChars,fracEnd=(charAcc+n)/totalChars;
-      wordRanges.push({el:wd,hl,s:fracStart,e:fracEnd,line:li});
-      wordEls.push(wd);charAcc+=n;wc++;
+      wordRanges.push({el:wd,hl,s:fracStart,e:fracEnd,line:li,fx});
+      wordEls.push(wd);charAcc+=n;neCount++;
     });
+    // floating decor emojis for this line (meaning symbols)
+    if(fx.decor&&fx.decor.length&&!isInterlude){
+      const dc=document.createElement('span');dc.className='decor';
+      fx.decor.forEach((g,k)=>{
+        const sp=document.createElement('i');sp.textContent=g;
+        sp.style.animationDelay=(0.5+k*0.45+li*0.3)+'s';
+        sp.style.setProperty('--dx',(k%2?-1:1)*(14+k*7)+'vh');
+        sp.style.setProperty('--dr',(k%2?1:-1)*(9+k*5)+'deg');
+        dc.appendChild(sp);
+      });
+      ln.appendChild(dc);
+    }
     blk.appendChild(ln);blk.appendChild(document.createElement('br'));
+    lineEls.push(ln);
   });
   enLines.forEach((L,li)=>{
     if(!L)return;
@@ -728,9 +878,9 @@ function buildBlock(cue,idx){
     ln.style.fontSize=isInterlude?'3.6vh':'3.2vh';
     ln.textContent=L;blk.appendChild(ln);
   });
-  // stagger delays; entrance variant chosen per line (varied, deterministic)
+  // stagger delays — slightly slower cascade so each word's own animation reads
   let dly=0;
-  for(const w of wordRanges){w.el.style.animationDelay=dly.toFixed(3)+'s';dly+=0.06}
+  for(const w of wordRanges){w.el.style.animationDelay=dly.toFixed(3)+'s';dly+=0.075}
   fitFont(blk);
   requestAnimationFrame(()=>{badge.classList.add('show');blk.querySelectorAll('.en-line').forEach(e=>e.classList.add('show'))});
   return blk;
@@ -738,13 +888,125 @@ function buildBlock(cue,idx){
 
 function showCue(idx,seeking){
   const cue=CUES[idx];if(!cue)return;
-  if(curBlock){const old=curBlock;old.classList.add('out');setTimeout(()=>old.remove(),600)}
+  if(curBlock){const old=curBlock;old.classList.add('out',EXIT_STYLE==='x-fast'?'out-fast':EXIT_STYLE==='x-shatter'?'out-shatter':'out-glow');setTimeout(()=>old.remove(),700)}
   curBlock=buildBlock(cue,idx);lyricLayer.appendChild(curBlock);
   curCueIdx=idx;
+  // prime the first line's choreography immediately
+  activeLine=-1;setLineFx(0,true);
   // section change detection
   if(idx===0||CUES[idx-1].t!==cue.t){
     announceSection(cue.t,seeking);
     onSectionChange(cue.t);
+  }
+}
+
+// ============================================================================
+// PER-LINE ACTIVE CHOREOGRAPHY — fires as the karaoke reaches each line:
+// meaning-particles burst, scene props react, camera does its move.
+// ============================================================================
+let activeLine=-1,lineFxTimer=0,lastLineEventT=0;
+const PANEL_COLORS={temple:'#F6D9A0',warm:'#FFE3D0',sacred:'#FFF1CC',festive:'#FFE9B4',sky:'#DFF2FF',playful:'#FFEAF6',bold:'#FFE2CE',golden:'#FFEFAE',green:'#E4F8DC',rush:'#FFE0C2',fire:'#FFE7B8',light:'#FFF8D8',earth:'#F3E3C0',night:'#DDE6F5'};
+function setPanelColor(name){
+  const c=PANEL_COLORS[name]||PANEL_COLORS.temple;
+  stage.style.setProperty('--panel',c);
+  panelTarget.set(c);
+}
+const panelTarget=new THREE.Color(0xF6D9A0);
+function emitParts(kind,n){
+  const cy=rnd(4,1),spread=rnd(9,-9);
+  for(let i=0;i<n;i++){
+    switch(kind){
+      case 'petals': petals.emit(rnd(20,-20),7+rand()*3,rnd(6,-14),(rand()-.5)*1.4,-.7-rand()*.6,(rand()-.5)*.8,7,.5);break;
+      case 'hearts': gold.emit(rnd(8,-8),2+rand()*2,rnd(2,-8),(rand()-.5)*2,2.6+rand()*1.6,(rand()-.5),1.6,.5);break;
+      case 'glowmotes': sparks.emit(rnd(6,-6),2.4+rand()*1.6,rnd(0,-6),(rand()-.5)*.8,.9+rand()*.6,(rand()-.5)*.8,1.8,.5);break;
+      case 'confetti': confetti.emit(rnd(3,-3),4.5+rnd(1,-1),rnd(1,-1),rnd(7,-7),5+rand()*4,rnd(3,-3),1.8,.45);confetti.setColor(confetti.cursor,CONF_COLORS[Math.floor(rand()*CONF_COLORS.length)]);break;
+      case 'dust': sparks.emit(rnd(10,-10),.4,rnd(4,-8),(rand()-.5)*3,.5+rand()*.5,(rand()-.5),.9,.4);break;
+      case 'sparks': sparks.emit(rnd(6,-6),3+rand()*2,rnd(2,-6),(rand()-.5)*3,3+rand()*2,(rand()-.5)*2,.9,.35);break;
+      case 'shock': for(let k=0;k<3;k++)sparks.emit(rnd(4,-4),2.6,rnd(0,-4),(rand()-.5)*8,(rand()-.5)*4,(rand()-.5)*8,.6,.25);break;
+      case 'goldrain': gold.emit(rnd(10,-10),7+rand()*2,rnd(2,-8),(rand()-.5)*.6,-2-rand()*1.5,(rand()-.5)*.6,2.4,.5);break;
+      case 'bubbles': fireflies.emit(rnd(8,-8),1+rand()*2,rnd(2,-6),(rand()-.5)*.6,1.4+rand()*.8,(rand()-.5)*.6,3,.5);break;
+      case 'speed': gold.emit(rnd(14,-14),2+rand()*3,rnd(-2,-10),-8-rand()*6,0,(rand()-.5),.7,.3);break;
+      case 'embers': sparks.emit(rnd(5,-5),1.6+rand(),rnd(1,-5),(rand()-.5)*1.2,2.2+rand()*1.4,(rand()-.5),1.3,.4);break;
+      case 'rayspark': gold.emit(rnd(9,-9),4+rand()*3,rnd(0,-8),(rand()-.5)*2,1+rand(),(rand()-.5),1.8,.5);break;
+      case 'debris': for(let k=0;k<4;k++)confetti.emit(rnd(3,-3),3,rnd(0,-3),(rand()-.5)*9,4+rand()*4,(rand()-.5)*9,.9,.3);break;
+      case 'stardust': fireflies.emit(rnd(10,-10),3+rand()*3,rnd(0,-8),(rand()-.5)*.8,.4,(rand()-.5)*.8,2.6,.5);break;
+      case 'updraft': fireflies.emit(rnd(8,-8),.8,rnd(2,-6),(rand()-.5)*.5,2.6+rand()*1.4,(rand()-.5)*.5,2.2,.4);break;
+      case 'paperplanes': sparks.emit(rnd(10,-10),4+rand()*2,rnd(-2,-8),4+rand()*3,.4+rand()*.4,(rand()-.5),1.6,.4);break;
+      case 'shieldglow': sparks.emit(rnd(4,-4),3+rand()*2,rnd(-2,-6),(rand()-.5)*.5,.4,(rand()-.5)*.5,1.4,.6);break;
+      case 'notes': case 'fireflyup': fireflies.emit(rnd(12,-12),1+rand()*3,rnd(2,-10),(rand()-.5)*.8,1.2+rand()*.8,(rand()-.5)*.8,3.4,.5);break;
+      default: sparks.emit(rnd(8,-8),3,rnd(2,-6),(rand()-.5)*2,2,(rand()-.5),1,.4);
+    }
+  }
+}
+// emoji "prop" sprites that pop into the 3D world for key metaphors
+const EMOJI_TEX={};
+function emojiTex(ch){
+  if(EMOJI_TEX[ch])return EMOJI_TEX[ch];
+  const cv=document.createElement('canvas');cv.width=cv.height=128;
+  const cx=cv.getContext('2d');cx.font='96px serif';cx.textAlign='center';cx.textBaseline='middle';
+  cx.fillText(ch,64,72);
+  const tx=new THREE.CanvasTexture(cv);EMOJI_TEX[ch]=tx;return tx;
+}
+const propSprites=[];
+function spawnPropEmoji(ch,x,y,z,scale,vy,life){
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:emojiTex(ch),transparent:true,depthWrite:false}));
+  sp.position.set(x,y,z);sp.scale.setScalar(scale||1.4);
+  sp.userData={vy:vy||1.2,life:life||2.2,t:0,rot:(rand()-.5)*2};
+  scene.add(sp);propSprites.push(sp);
+  return sp;
+}
+function updatePropSprites(dt){
+  for(let i=propSprites.length-1;i>=0;i--){
+    const s=propSprites[i];s.userData.t+=dt;
+    s.position.y+=s.userData.vy*dt;s.position.x+=Math.sin(s.userData.t*2+s.rotation.z)*dt*.4;
+    const k=s.userData.t/s.userData.life;
+    s.material.opacity=k<.15?k/.15:clamp(1-(k-.6)/.4,0,1);
+    s.scale.setScalar((1.4+k*.6)*(s.userData.baseScale||1));
+    if(k>=1){scene.remove(s);s.material.dispose();propSprites.splice(i,1)}
+  }
+}
+function lineMeaningFX(fx,li,cue){
+  // particles + emoji props + one-shot scene reactions, keyed to meaning
+  emitParts(fx.parts||'sparks',fx.parts==='confetti'?46:fx.parts==='goldrain'?36:26);
+  if(fx.decor)fx.decor.forEach((g,k)=>{
+    if(/[♪♫🎶]/.test(g))return;
+    spawnPropEmoji(g,rnd(7,-7),1.6+rand()*2,rnd(-1,-9),1.1+rand()*.7,.9+rand()*.8,2.6);
+  });
+  switch(fx.parts){
+    case 'confetti': flashScreen(.22);break;
+    case 'goldrain': flashScreen(.16);break;
+    case 'shock': flashScreen(.3);A.pulse=Math.min(1.5,A.pulse+.9);break;
+    case 'debris': flashScreen(.28);A.pulse=Math.min(1.5,A.pulse+1);break;
+    case 'speed': A.pulse=Math.min(1.4,A.pulse+.7);break;
+  }
+  // one-shot world reactions
+  const s=fx.scene||{};
+  if(s.diyaLight||s.diyasAll||s.diayas)diyas.forEach(d=>{d.userData.wantOn=true});
+  if(s.gate)KALASHA&&spawnPropEmoji('✨',0,6.2,-14,1.6,1.2,2);
+  if(s.freeze){/* handled via SC.freeze in loop */}
+  if(s.smash){for(let k=0;k<5;k++)spawnPropEmoji('💥',rnd(9,-9),1.5+rand()*2,rnd(-2,-10),1+rand(),1.6,1.1)}
+  if(s.sparkFly){for(let k=0;k<6;k++)spawnPropEmoji('✨',rnd(8,-8),2+rand()*2,rnd(0,-8),.9,1.8,1.4)}
+  if(s.treasure){for(let k=0;k<5;k++)spawnPropEmoji(['💰','🪙','📜'][k%3],rnd(7,-7),3.4,rnd(-1,-7),1.2,.4,2.4)}
+  if(s.kite)spawnPropEmoji('🪁',rnd(6,-6),5.5,-10,1.8,.5,3.4);
+  if(s.thali)spawnPropEmoji('🍛',0,2.4,-4,1.6,.3,2.4);
+  if(s.trophy)spawnPropEmoji('🏆',0,4.2,-8,2,.5,3);
+  if(s.balloons){['🎈','🎈','🎈'].forEach(b=>spawnPropEmoji(b,rnd(8,-8),1.5,rnd(-2,-8),1.5,1.4,3.6))}
+  if(s.seesaw){['😄','😆'].forEach((b,i)=>spawnPropEmoji(b,(i?3:-3),2.2,-5,1.3,1,2.6))}
+  if(s.bulbGlow)spawnPropEmoji('💡',0,4.5,-6,2,.6,2.8);
+  if(s.compass||s.signposts)spawnPropEmoji('🧭',4,3,-7,1.6,.4,2.6);
+}
+function setLineFx(li,force){
+  if(!lineFxList.length)return;
+  const fx=lineFxList[Math.min(li,lineFxList.length-1)];
+  if(!fx)return;
+  if(!force&&li===activeLine)return;
+  const changedVariant=(activeLine<0)||(lineFxList[activeLine]!==fx);
+  activeLine=li;
+  if(changedVariant||force){
+    setSceneFromFx(fx);          // camera move + scene props goal
+    setPanelColor(fx.panel);     // backdrop tint tween
+    lineMeaningFX(fx,li,CUES[curCueIdx]);
+    lastLineEventT=elapsed;
   }
 }
 function announceSection(t,seeking){
@@ -799,7 +1061,7 @@ function lightAllDiyas(on){diyas.forEach(d=>{d.userData.wantOn=on})}
 
 const fogTarget=new THREE.Color(0xEADFC8),ambTarget=new THREE.Color(0xBFD8E8),dirTarget=new THREE.Color(0xFFDFB0),sunColTarget=new THREE.Color(0xFFE9B8);
 
-// ---------- camera rig ----------
+// ---------- camera rig (choreographed per-line moves) ----------
 const camState={pos:new THREE.Vector3(0,4.6,17.5),look:new THREE.Vector3(0,2.2,-4)};
 const CAM_KEY={
  intro:{p:[0,5.2,20],l:[0,2.6,-10]},
@@ -811,6 +1073,39 @@ const CAM_KEY={
  charana:{p:[-2,5.4,16],l:[0,2.6,-8]},
  outro:{p:[0,3.4,11],l:[0,2.4,-20]},
 };
+// per-move camera modifiers: [dx,dy,dz] offset, look offset, fov punch, roll, lerp speed
+const CAM_MOVE_MOD={
+ pushIn:    {p:[0,0,-2.5],  l:[0,0,0],   fov:-3,  roll:0,    spd:1.3},
+ arcRight:  {p:[5,.6,-1],   l:[-2,0,0],  fov:0,   roll:.012, spd:1.1},
+ arcLeft:   {p:[-5,.6,-1],  l:[2,0,0],   fov:0,   roll:-.012,spd:1.1},
+ tiltUp:    {p:[0,-.6,-1],  l:[0,2.4,-2],fov:-1,  roll:0,    spd:1.0},
+ pullBack:  {p:[0,1.2,3.5], l:[0,0,2],   fov:4,   roll:0,    spd:1.2},
+ trackSide: {p:[6,0,0],     l:[-4,0,0],  fov:0,   roll:0,    spd:1.6},
+ bounce:    {p:[0,.4,0],    l:[0,0,0],   fov:0,   roll:.006, spd:2.2, dyn:'bounce'},
+ whipStop:  {p:[-3,0,1.5],  l:[3,0,0],   fov:-4,  roll:-.02, spd:3.2, dyn:'whip'},
+ craneUp:   {p:[0,3.5,-1],  l:[0,-1.5,-3],fov:-2, roll:0,    spd:1.0},
+ driftFloat:{p:[0,1,1],     l:[0,.5,0],  fov:2,   roll:.008, spd:.7,  dyn:'float'},
+ chaseCart: {p:[2,-.8,-2],  l:[-3,0,0],  fov:-5,  roll:-.015,spd:2.4, dyn:'chase'},
+ panFast:   {p:[7,-.4,0],   l:[-6,0,0],  fov:-3,  roll:-.02, spd:3.0, dyn:'pan'},
+ whoosh:    {p:[-8,.5,2],   l:[6,0,0],   fov:-6,  roll:.03,  spd:3.6, dyn:'pan'},
+ zoomPop:   {p:[0,0,-4],    l:[0,0,0],   fov:-7,  roll:0,    spd:3.0, dyn:'pop'},
+ glowRise:  {p:[0,2.2,-2],  l:[0,1.5,-1],fov:-2,  roll:0,    spd:1.1, dyn:'rise'},
+ tiltUpSun: {p:[0,-1,-2],   l:[0,3.5,-4],fov:-3,  roll:0,    spd:1.0, dyn:'rise'},
+ shakeHit:  {p:[0,0,-1.5],  l:[0,0,0],   fov:-5,  roll:.02,  spd:2.6, dyn:'hit'},
+ riseBloom: {p:[0,1.8,-1.5],l:[0,.8,-1], fov:-2,  roll:0,    spd:1.2, dyn:'rise'},
+ celebrate: {p:[0,.8,-1],   l:[0,0,0],   fov:-3,  roll:.01,  spd:1.8, dyn:'bounce'},
+ orbitLook: {p:[4,1,2],     l:[-3,0,-2], fov:0,   roll:.01,  spd:1.0, dyn:'orbit'},
+ heroLow:   {p:[0,-1.4,-3], l:[0,1.6,-2],fov:-5,  roll:0,    spd:1.4},
+ welcomePush:{p:[0,0,-3],   l:[0,0,0],   fov:-4,  roll:0,    spd:1.8, dyn:'pop'},
+ groundLevel:{p:[0,-2.4,1], l:[0,.6,0],  fov:2,   roll:0,    spd:1.2},
+ leanIn:    {p:[0,0,-2.5],  l:[0,.4,-1], fov:-2,  roll:0,    spd:1.3},
+ riseLift:  {p:[0,3,-1],    l:[0,2,-3],  fov:-1,  roll:0,    spd:1.1, dyn:'rise'},
+ steadyZoom:{p:[0,0,-2],    l:[0,0,0],   fov:-3,  roll:0,    spd:.8},
+ followPlane:{p:[3,.8,0],   l:[-3,.6,0], fov:0,   roll:.008, spd:1.5, dyn:'pan'},
+ teeter:    {p:[0,0,0],     l:[0,0,0],   fov:0,   roll:.02,  spd:1.6, dyn:'seesaw'},
+ orbitSlow: {p:[0,0,0],     l:[0,0,0],   fov:0,   roll:0,    spd:.8,  dyn:'orbit'},
+ outroPull: {p:[0,1.5,5],   l:[0,.5,4],  fov:5,   roll:0,    spd:.8,  dyn:'float'},
+};
 function camKeysFor(t,m){
   switch(t){
     case 0:return Math.sin(m*.13)>0?CAM_KEY.pallavi:CAM_KEY.pallaviWide;
@@ -820,6 +1115,22 @@ function camKeysFor(t,m){
     case 4:return CAM_KEY.outro;
   }
   return CAM_KEY.pallavi;
+}
+// dynamic embellishments for camera moves (sine-based, cheap)
+function camDyn(kind,m){
+  switch(kind){
+    case 'bounce':return {dy:Math.abs(Math.sin(m*4.2))*.9, dz:0, roll:Math.sin(m*4.2)*.01, fov:Math.abs(Math.sin(m*4.2))*-2};
+    case 'whip':{const k=clamp((elapsed-CAM_MOVE_T)/.5,0,1);return {dx:(1-k)*-6, dy:0, roll:(1-k)*.06, fov:(1-k)*-6}}
+    case 'float':return {dy:Math.sin(m*.9)*.5, dx:Math.sin(m*.6)*.4, roll:Math.sin(m*.5)*.012};
+    case 'chase':return {dx:Math.sin(m*.9)*2.2, dy:Math.sin(m*2.2)*.25, roll:Math.sin(m*1.1)*.014};
+    case 'pan':{const k=clamp((elapsed-CAM_MOVE_T)/.9,0,1);return {dx:(1-k)*5, roll:(1-k)*.03}}
+    case 'pop':{const k=clamp((elapsed-CAM_MOVE_T)/.45,0,1);return {dz:(1-k)*(1-k)*-4, fov:(1-k)*-5}}
+    case 'rise':return {dy:Math.min(1,(elapsed-CAM_MOVE_T)/2)*1.2, roll:0};
+    case 'hit':{const k=clamp((elapsed-CAM_MOVE_T)/.6,0,1);const s=(1-k);return {dx:Math.sin(elapsed*40)*s*.5, dy:Math.sin(elapsed*33)*s*.4, roll:Math.sin(elapsed*37)*s*.02}}
+    case 'orbit':return {dx:Math.sin(m*.35)*4.5, dz:Math.cos(m*.35)*3, roll:Math.sin(m*.35)*.015};
+    case 'seesaw':return {roll:Math.sin(m*2.6)*.035, dy:Math.sin(m*2.6)*.3};
+    default:return {};
+  }
 }
 
 // ---------- resize ----------
@@ -896,19 +1207,31 @@ function animate(){
   for(let i=0;i<CUES.length;i++){if(t>=CUES[i].s&&t<CUES[i].e){idx=i;break}}
   if(idx!==curCueIdx&&idx>=0){showCue(idx,seekDirty);seekDirty=false}
   if(idx===-1&&curCueIdx>=0&&t>=CUES[curCueIdx]?.e){/* keep block until next */}
-  // karaoke highlight
+  // karaoke highlight + per-line choreography activation
   if(curBlock&&curCueIdx>=0){
     const cue=CUES[curCueIdx];
     const prog=clamp((t-cue.s)/(cue.e-cue.s-0.15),0,1);
     for(const w of wordRanges){
       const lp=clamp((prog-w.s)/Math.max(1e-4,w.e-w.s),0,1);
       w.hl.style.clipPath=`inset(0 ${(1-lp)*100}% 0 0)`;
-      // bounce word when being sung
+      const bs=+w.el.dataset.baseScale||1, tl=+w.el.dataset.tilt||0;
+      // bounce word when being sung — with meaning-scale & tilt baked in
       if(lp>0&&lp<1){
         const b=Math.sin(elapsed*14+w.s*40)*.04*A.mid;
-        w.el.style.transform=`translateY(${b}em) scale(${1+A.pulse*0.05})`;
-      }else if(lp>=1){w.el.style.transform=`scale(${1+A.pulse*0.03})`}
+        w.el.style.transform=`translateY(${b}em) scale(${bs*(1+A.pulse*0.06)}) rotate(${tl*(1+Math.sin(elapsed*6)*.2)}deg)`;
+      }else if(lp>=1){
+        w.el.style.transform=`scale(${bs*(1+A.pulse*0.03)}) rotate(${tl*.4}deg)`;
+      }
     }
+    // which line is currently being sung? -> fire that line's choreography
+    let li=0;
+    for(let k=0;k<wordRanges.length;k++){if(prog>=wordRanges[k].s){li=wordRanges[k].line;break}}
+    if(li!==activeLine)setLineFx(li,false);
+    // non-active lines dim slightly so the sung line leads the eye
+    lineEls.forEach((el,k)=>{
+      el.style.opacity=k===activeLine?1:(k<activeLine?.82:.92);
+      el.classList.toggle('line-active',k===activeLine);
+    });
     // gentle whole-line breathing synced to rms
     const br=1+A.rms*0.035;
     curBlock.style.transform=`translate(-50%,-50%) scale(${br}) rotate(${Math.sin(elapsed*.7)*.4}deg)`;
@@ -927,23 +1250,49 @@ function animate(){
 
   // ---- mood / theme tween ----
   mood+=(moodTarget-mood)*Math.min(1,dt*1.4);
-  scene.fog.color.lerp(fogTarget,dt*1.2);
+  // per-line panel tint blends with section mood color
+  scene.background.lerp(panelTarget,Math.min(1,dt*1.6));
+  scene.fog.color.copy(scene.background).lerp(fogTarget,.55);
   renderer.setClearColor(scene.fog.color);
   amb.color.lerp(ambTarget,dt*1.2);sun.color.lerp(dirTarget,dt*1.2);sunOrb.material.color.lerp(sunColTarget,dt*1.2);
   hookMode=lerp(hookMode,hookNow()?1:0,dt*2);
   const night=mood===4?1:0;
   renderer.toneMappingExposure=lerp(renderer.toneMappingExposure,1.08-A.rms*0.06+(mood===4?-0.06:0),dt*3);
 
-  // ---- camera choreography ----
+  // ---- camera choreography (per-line moves + scene-reactive props) ----
+  // tween SC.cur toward SC.goal (prop intensities driven by line meaning)
+  const scSpd=Math.min(1,dt*3.2);
+  for(const k of SC_KEYS)SC.cur[k]+=(SC.goal[k]-SC.cur[k])*scSpd;
+  updatePropSprites(dt);
+  // prop visibility / behaviour driven by active-line state
+  arrow.visible=SC.cur.arrow>.15||(CUES[curCueIdx]&&(CUES[curCueIdx].t||'').indexOf('ಪಲ್ಲವಿ')>=0&&SC.cur.gate>.4);
+  cart.visible=SC.cur.cart>.15||hookNow();
+  const cartBoost=SC.cur.cart;
+  lanterns.forEach(l=>{l.userData.vyBase=l.userData.vy});
+  riverDiyas.forEach(g=>{g.userData.boost=SC.cur.riverFlow||SC.cur.diyasAll});
+  // diya lighting: night outro or explicit fx requests light everything
+  const wantAllDiyas=SC.cur.diyasAll>.5||SC.cur.night>.5||mood===4;
+  if(wantAllDiyas)lightAllDiyas(true);
+  // sun-follow "rays" effect: temporarily raise sun intensity during 'belaku'/'sunDaily'
+  sun.intensity=1.35+A.rms*.35+A.pulse*.25+(SC.cur.sunburst+SC.cur.rays)*.8+(SC.cur.sunDaily||SC.cur.bulbGlow?0:0)+(SC.cur.bulbGlow)*.6;
+
   const key=camKeysFor(CUES[curCueIdx]?themeFor(CUES[curCueIdx].t).mood:0,t);
+  const mod=CAM_MOVE_MOD[CAM_MOVE]||CAM_MOVE_MOD.pushIn;
+  const dyn=mod.dyn?camDyn(mod.dyn,t):{};
   const driftX=Math.sin(t*.11)*1.6+Math.sin(t*.037)*.9;
   const driftY=Math.sin(t*.083)*.5;
-  const shake=A.pulse*0.06*hookMode;
-  const px=key.p[0]+driftX+(rand()-.5)*shake,py=key.p[1]+driftY+A.pulse*.18+(rand()-.5)*shake,pz=key.p[2]-hookMode*1.5;
-  camState.pos.lerp(new THREE.Vector3(px,py,pz),dt*1.1);
-  camState.look.lerp(new THREE.Vector3(key.l[0]+Math.sin(t*.07)*.6,key.l[1],key.l[2]),dt*1.1);
+  const shake=A.pulse*0.06*hookMode+(dyn.hitShake||0);
+  const px=key.p[0]+driftX+(mod.p[0]||0)+(dyn.dx||0)+(rand()-.5)*shake;
+  const py=key.p[1]+driftY+A.pulse*.18+(mod.p[1]||0)+(dyn.dy||0)+(rand()-.5)*shake;
+  const pz=key.p[2]-hookMode*1.5+(mod.p[2]||0)+(dyn.dz||0);
+  const lerpSpd=dt*(mod.spd||1.1);
+  camState.pos.lerp(new THREE.Vector3(px,py,pz),lerpSpd);
+  camState.look.lerp(new THREE.Vector3(key.l[0]+Math.sin(t*.07)*.6+(mod.l[0]||0)+(dyn.lx||0),key.l[1]+(mod.l[1]||0)+(dyn.ly||0),key.l[2]+(mod.l[2]||0)),lerpSpd);
   camera.position.copy(camState.pos);camera.lookAt(camState.look);
-  camera.rotation.z=Math.sin(t*.05)*.006+A.pulseFast*.01*(rand()-.5);
+  camera.rotation.z=Math.sin(t*.05)*.006+A.pulseFast*.01*(rand()-.5)+(mod.roll||0)+(dyn.roll||0);
+  // fov punch eased back to base
+  const fovT=52+(mod.fov||0)+(dyn.fov||0)+hookMode*-2;
+  if(Math.abs(camera.fov-fovT)>.01){camera.fov+=(fovT-camera.fov)*Math.min(1,dt*2.5);camera.updateProjectionMatrix()}
 
   // ---- sun orb pulses ----
   sunOrb.scale.setScalar(42+A.bass*26+A.pulse*8);
@@ -992,11 +1341,11 @@ function animate(){
   });
 
   // ---- diya river flow (visible during spark→lamp & rush sections) ----
-  const riverOn=hookNow()||(CUES[curCueIdx]&&(CUES[curCueIdx].t||'').indexOf('ಕಿಡಿ')>=0)||mood===4;
+  const riverOn=hookNow()||SC.cur.riverFlow>.2||(CUES[curCueIdx]&&(CUES[curCueIdx].t||'').indexOf('ಕಿಡಿ')>=0)||mood===4;
   riverDiyas.forEach(g=>{
     g.visible=riverOn;
     if(!riverOn)return;
-    g.position.x+=g.userData.vx*(1+A.rms)*dt*2.2;
+    g.position.x+=g.userData.vx*(1+A.rms)*(1+(g.userData.boost||0))*dt*2.2;
     g.position.y=.12+Math.sin(elapsed*3+g.position.x)*.03;
     if(g.position.x>32)g.position.x=-32;
     g.userData.fl.material.opacity=.5+A.pulse*.5;
@@ -1052,22 +1401,22 @@ function animate(){
     p.position.y=Math.abs(Math.sin(elapsed*3+p.userData.ph))*.05*open;
   });
 
-  // ---- petals rain continuously, more during charana/pallavi ----
-  const petalRate=(mood===3||mood===0)?26:10;
+  // ---- petals rain continuously, more during charana/pallavi & petal lines ----
+  const petalRate=((mood===3||mood===0)?26:10)+(SC.cur.treesSway*30);
   if(Math.random()<petalRate*dt){
     petals.emit(rnd(26,-26),9+rand()*3,rnd(8,-20),(rand()-.5)*1.2,-.8-rand(),(rand()-.5)*.6,7,.5);
   }
-  // fireflies at dusk/outro
-  if(mood===4&&Math.random()<40*dt){
+  // fireflies at dusk/outro or fx-requested calm/night lines
+  if((mood===4||SC.cur.fireflies>.3)&&Math.random()<(mood===4?40:26)*dt){
     fireflies.emit(rnd(24,-24),1+rand()*4,rnd(4,-18),(rand()-.5)*.4,rand()*.3,(rand()-.5)*.4,3+rand()*3,.3);
   }
   petals.update(dt);sparks.update(dt);gold.update(dt);fireflies.update(dt);
 
-  // ---- lanterns rise during hook ----
+  // ---- lanterns rise during hook / fx-requested lines ----
   lanterns.forEach(l=>{
-    const on=hookMode>.3||mood===4;
+    const on=hookMode>.3||mood===4||SC.cur.lanterns>.3;
     l.userData.body.visible=on;l.userData.lt.intensity=on?(.8+A.pulse):0;
-    if(on){l.position.y+=l.userData.vy*dt*(1+A.rms);l.position.x+=Math.sin(elapsed+l.userData.ph)*dt*.6;
+    if(on){const rs=1+(SC.cur.lanterns||0)*1.6;l.position.y+=l.userData.vy*dt*(1+A.rms)*rs;l.position.x+=Math.sin(elapsed+l.userData.ph)*dt*.6;
       if(l.position.y>26){l.position.y=1.5;l.position.x=rnd(24,-24)}}
   });
 
